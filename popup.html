@@ -1,0 +1,383 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Raider</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --bg:      #ffffff;
+      --s1:      #f9fafb;
+      --s2:      #f3f4f6;
+      --border:  rgba(0,0,0,0.08);
+      --text:    #111;
+      --muted:   #6b7280;
+      --dim:     #9ca3af;
+      --accent:  #111;
+      --success: #15803d;
+      --warn:    #d97706;
+      --error:   #dc2626;
+      --info:    #2563eb;
+    }
+
+    body {
+      width: 360px;
+      max-height: 560px;
+      background: var(--bg);
+      color: var(--text);
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+      font-size: 12px;
+      line-height: 1.4;
+      -webkit-font-smoothing: antialiased;
+      overflow: hidden;
+    }
+
+    /* Side panel: fill the full panel height, no fixed width */
+    @media (min-width: 380px) {
+      body { width: 100%; max-height: 100vh; overflow-y: auto; overflow-x: hidden; }
+      #feed { max-height: calc(100vh - 180px); }
+    }
+
+    /* ── Header ── */
+    .header {
+      display: flex; align-items: center; gap: 7px;
+      padding: 9px 12px 8px;
+      border-bottom: 1px solid var(--border);
+    }
+    .header-icon { font-size: 14px; }
+    .header-title { font-size: 11px; font-weight: 800; letter-spacing: 0.1em; text-transform: uppercase; flex: 1; }
+    .header-sub   { font-size: 10px; color: var(--dim); font-family: ui-monospace, monospace; }
+    .dot-live { width: 6px; height: 6px; border-radius: 50%; background: #d1d5db; flex-shrink: 0; }
+    .dot-live.connected    { background: #22c55e; animation: pulse 2.2s infinite; }
+    .dot-live.disconnected { background: #ef4444; }
+    @keyframes pulse { 0%,100% { box-shadow: 0 0 0 0 rgba(34,197,94,0.4); } 70% { box-shadow: 0 0 0 5px rgba(34,197,94,0); } }
+
+    /* DEV chip */
+    .dev-chip {
+      display: none;
+      align-items: center;
+      font-size: 9px; font-weight: 800; letter-spacing: 0.08em;
+      text-transform: uppercase;
+      background: #fef3c7; color: #92400e;
+      padding: 1px 5px; border-radius: 4px;
+    }
+
+    /* ── Tabs ── */
+    .tabs { display: flex; padding: 4px 10px 0; border-bottom: 1px solid var(--border); gap: 2px; }
+    .tab {
+      flex: 1; padding: 5px 0; border: none; background: none;
+      font-size: 10px; font-weight: 600; letter-spacing: 0.06em; text-transform: uppercase;
+      color: var(--dim); cursor: pointer; border-bottom: 2px solid transparent;
+    }
+    .tab.active  { color: var(--text); border-bottom-color: var(--text); }
+    .tab:hover:not(.active) { color: var(--muted); }
+
+    /* ── Quick capture ── */
+    .quick-wrap {
+      display: flex; flex-direction: column; gap: 5px;
+      padding: 8px 10px 6px; border-bottom: 1px solid var(--border);
+      position: sticky; top: 0; background: var(--bg); z-index: 10;
+    }
+    .btn-pin-page {
+      width: 100%; padding: 7px 10px;
+      background: var(--accent); color: #fff;
+      border: none; border-radius: 7px;
+      font-size: 12px; font-weight: 700; cursor: pointer;
+      transition: background 0.1s, transform 0.08s;
+    }
+    .btn-pin-page:hover:not(:disabled)  { background: #1f2937; }
+    .btn-pin-page:active:not(:disabled) { transform: scale(0.98); }
+    .btn-pin-page:disabled { background: #6b7280; }
+    .url-row { display: flex; gap: 5px; }
+    .quick-input {
+      flex: 1; padding: 5px 8px; border: 1px solid #e5e7eb; border-radius: 7px;
+      font-size: 11px; outline: none; font-family: inherit; transition: border-color 0.15s;
+    }
+    .quick-input:focus { border-color: var(--accent); }
+    .quick-input::placeholder { color: var(--dim); }
+    .btn-capture {
+      padding: 5px 10px; background: var(--accent); color: #fff;
+      border: none; border-radius: 7px; font-size: 11px; font-weight: 700;
+      cursor: pointer; min-width: 36px; transition: background 0.1s;
+    }
+    .btn-capture:hover:not(:disabled) { background: #1f2937; }
+    .btn-capture:disabled { background: #d1d5db; cursor: not-allowed; }
+
+    /* ── Auth blocking overlay ── */
+    .auth-block {
+      display: flex; flex-direction: column; align-items: center; justify-content: center;
+      padding: 32px 24px; gap: 8px; text-align: center;
+    }
+    .auth-block-icon  { font-size: 28px; }
+    .auth-block-title { font-size: 14px; font-weight: 700; color: var(--text); }
+    .auth-block-desc  { font-size: 11px; color: var(--muted); line-height: 1.5; max-width: 220px; }
+
+    /* ── Success flash ── */
+    #success-flash {
+      display: none;
+      align-items: center; justify-content: center;
+      padding: 7px 12px;
+      background: #f0fdf4; color: var(--success);
+      border-bottom: 1px solid #bbf7d0;
+      font-size: 11px; font-weight: 700;
+      position: sticky; top: 0; z-index: 20;
+    }
+    @keyframes flashIn  { from { opacity: 0; transform: translateY(-4px); } to { opacity: 1; transform: none; } }
+    @keyframes flashOut { to   { opacity: 0; } }
+
+    /* ── Capture warning (replaces login-warning) ── */
+    #capture-warning {
+      display: none; flex-direction: column; gap: 5px;
+      background: #fffbeb; border: 1px solid #fde68a;
+      padding: 9px 11px; border-radius: 7px; margin-bottom: 1px;
+      font-size: 11px; color: #92400e;
+    }
+    #warn-title { font-weight: 700; }
+    #warn-body  { line-height: 1.5; font-size: 10.5px; color: #78350f; }
+    .warn-row   { display: flex; gap: 5px; margin-top: 2px; }
+
+    /* ── Feed ── */
+    #feed {
+      overflow-y: auto; max-height: 400px;
+      scrollbar-width: thin;
+    }
+    #feed::-webkit-scrollbar { width: 4px; }
+    #feed::-webkit-scrollbar-thumb { background: #e5e7eb; border-radius: 2px; }
+
+    /* ── Auth banner ── */
+    .auth-banner {
+      display: flex; align-items: center; gap: 6px;
+      padding: 7px 11px; background: #fef2f2; border-bottom: 1px solid #fecaca;
+      font-size: 10.5px; color: #991b1b;
+    }
+
+    /* ── Sections ── */
+    .section { border-bottom: 1px solid var(--border); }
+    .sec-header {
+      display: flex; align-items: center; gap: 5px;
+      padding: 5px 11px; cursor: pointer;
+      background: var(--s1); user-select: none;
+    }
+    .sec-header:hover { background: var(--s2); }
+    .sec-chevron { font-size: 9px; color: var(--dim); width: 10px; }
+    .sec-label { font-size: 9.5px; font-weight: 700; letter-spacing: 0.06em; text-transform: uppercase; color: var(--muted); flex: 1; }
+    .sec-count { font-size: 9px; font-weight: 700; background: var(--s2); color: var(--muted); padding: 1px 5px; border-radius: 8px; }
+    .sec-clear {
+      font-size: 9px; color: var(--error); background: none; border: none;
+      cursor: pointer; padding: 1px 5px; border-radius: 4px; font-weight: 600;
+      text-transform: uppercase; letter-spacing: 0.04em;
+    }
+    .sec-clear:hover { background: #fef2f2; }
+
+    /* Collapsed state */
+    [data-collapsed="true"] .sec-body { display: none; }
+
+    /* ── Cards ── */
+    .card {
+      padding: 7px 11px;
+      border-bottom: 1px solid var(--border);
+      animation: fadeIn 0.15s ease;
+    }
+    @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+    .card:last-child { border-bottom: none; }
+
+    /* Grid layout prevents icon/title collision regardless of content length */
+    .card-row {
+      display: grid;
+      grid-template-columns: 18px 14px 1fr auto auto;
+      column-gap: 4px;
+      align-items: center;
+      min-width: 0;
+    }
+    .card-favicon { grid-column: 2; width: 14px; height: 14px; display: flex; align-items: center; }
+    .card-favicon img { width: 12px; height: 12px; }
+    .ic { grid-column: 1; font-size: 11px; font-weight: 800; text-align: center; }
+    .ic-warn { color: var(--warn); }
+    .ic-ok   { color: var(--success); }
+    .ic-err  { color: var(--error); }
+
+    /* Text column: min-width:0 is REQUIRED for ellipsis in grid/flex */
+    .card-title {
+      grid-column: 3;
+      min-width: 0;
+      font-size: 11px; font-weight: 600; color: var(--text);
+      white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+    }
+    .card-link { text-decoration: none; }
+    .card-link:hover { text-decoration: underline; }
+    .card-meta-right { grid-column: 4; font-size: 9px; color: var(--dim); white-space: nowrap; padding-left: 4px; }
+    .card-time       { grid-column: 5; font-size: 9px; color: var(--dim); font-family: ui-monospace, monospace; white-space: nowrap; padding-left: 4px; }
+
+    .org-tag { font-size: 9px; font-weight: 700; background: #f0fdf4; color: #15803d; padding: 1px 4px; border-radius: 4px; flex-shrink: 0; }
+
+    .card-note {
+      margin-top: 3px;
+      padding-left: 36px; /* indent to align with title column */
+      font-size: 10px; color: var(--muted); line-height: 1.4;
+    }
+    .card-actions {
+      display: flex; gap: 4px; margin-top: 4px;
+      padding-left: 36px;
+    }
+
+    /* ── Stage rail (active cards only) ── */
+    .rail {
+      display: flex; align-items: center; gap: 6px;
+      margin-top: 5px; padding-left: 2px;
+    }
+    .rail-dots { display: flex; align-items: center; gap: 0; }
+    .sd {
+      width: 7px; height: 7px; border-radius: 50%;
+      background: var(--s2); flex-shrink: 0;
+      transition: background 0.2s;
+    }
+    .sl  { width: 10px; height: 1px; background: var(--border); }
+    .sd-done   { background: #22c55e; }
+    .sd-active { background: #2563eb; }
+    .sd-pulse  { animation: dotPulse 1s ease-in-out infinite; }
+    @keyframes dotPulse { 0%,100% { opacity: 1; } 50% { opacity: 0.4; transform: scale(0.8); } }
+    .rail-label { font-size: 9.5px; color: var(--info); font-weight: 600; }
+
+    /* ── Buttons ── */
+    .btn-sm {
+      font-size: 9px; font-weight: 700; letter-spacing: 0.04em; text-transform: uppercase;
+      padding: 2px 6px; border-radius: 4px; cursor: pointer; border: 1px solid;
+      white-space: nowrap; transition: background 0.1s;
+    }
+    .btn-open    { color: var(--info);    border-color: #bfdbfe; background: #eff6ff; }
+    .btn-open:hover { background: #dbeafe; }
+    .btn-retry   { color: var(--muted);   border-color: #e5e7eb; background: var(--s2); }
+    .btn-retry:hover { background: #e5e7eb; color: var(--text); }
+    .btn-retry:disabled { opacity: 0.5; cursor: not-allowed; }
+    .btn-dismiss { color: var(--dim);     border-color: transparent; background: none; }
+    .btn-dismiss:hover { color: var(--error); background: #fef2f2; }
+    .btn-warn    { color: #991b1b;        border-color: #fca5a5; background: #fef2f2; }
+    .btn-warn:hover { background: #fecaca; }
+
+    /* ── Empty state ── */
+    .empty { display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 36px 20px; gap: 9px; text-align: center; color: var(--dim); }
+    .empty-icon { font-size: 28px; opacity: 0.45; }
+    .empty-text { font-size: 11px; line-height: 1.6; }
+    .empty-text b { color: var(--muted); }
+
+    /* ── Settings ── */
+    #settings-panel { padding: 12px; display: none; overflow-y: auto; max-height: 500px; }
+    .field { margin-bottom: 10px; }
+    .field label { display: block; font-size: 10px; font-weight: 700; letter-spacing: 0.06em; text-transform: uppercase; color: var(--muted); margin-bottom: 4px; }
+    .field input[type=text], .field input[type=url], .field input[type=password] {
+      width: 100%; padding: 6px 8px; border: 1px solid #e5e7eb; border-radius: 7px;
+      font-size: 11px; font-family: ui-monospace, monospace; outline: none;
+      transition: border-color 0.15s;
+    }
+    .field input:focus { border-color: var(--accent); }
+    .field .hint { font-size: 9.5px; color: var(--dim); margin-top: 3px; line-height: 1.5; }
+
+    .toggle-row { display: flex; align-items: flex-start; justify-content: space-between; gap: 10px; padding: 8px 0; border-top: 1px solid var(--border); margin-top: 4px; }
+    .toggle-label { font-size: 11px; font-weight: 500; color: var(--text); }
+    .toggle-hint  { font-size: 9.5px; color: var(--dim); margin-top: 2px; line-height: 1.4; }
+    .toggle-switch { position: relative; width: 34px; height: 18px; flex-shrink: 0; }
+    .toggle-switch input { opacity: 0; width: 0; height: 0; position: absolute; }
+    .toggle-switch .track { position: absolute; inset: 0; border-radius: 18px; background: #d1d5db; cursor: pointer; transition: background 0.15s; }
+    .toggle-switch input:checked + .track { background: var(--accent); }
+    .toggle-switch .track::after { content: ''; position: absolute; left: 1px; top: 1px; width: 16px; height: 16px; border-radius: 50%; background: #fff; transition: transform 0.15s; }
+    .toggle-switch input:checked + .track::after { transform: translateX(16px); }
+
+    .btn-row { display: flex; gap: 5px; margin-top: 10px; }
+    .btn { flex: 1; padding: 7px 10px; border-radius: 7px; border: none; font-size: 11px; font-weight: 600; cursor: pointer; transition: all 0.1s; }
+    .btn-primary { background: var(--accent); color: #fff; }
+    .btn-primary:hover { background: #1f2937; }
+    .btn-ghost { background: var(--s2); color: var(--muted); }
+    .btn-ghost:hover { background: #e5e7eb; color: var(--text); }
+
+    /* ── Footer ── */
+    .footer { display: flex; align-items: center; gap: 7px; padding: 5px 11px; border-top: 1px solid var(--border); background: var(--s1); }
+    .footer-hint { flex: 1; font-size: 9px; color: var(--dim); font-family: ui-monospace, monospace; }
+    .footer-link { font-size: 9.5px; color: var(--muted); text-decoration: none; font-weight: 600; padding: 2px 5px; border-radius: 4px; }
+    .footer-link:hover { color: var(--text); background: var(--s2); }
+    .footer-link.danger { color: var(--dim); border: none; background: none; cursor: pointer; font-family: inherit; }
+    .footer-link.danger:hover { color: var(--error); background: #fef2f2; }
+  </style>
+</head>
+<body>
+
+  <div class="header">
+    <span class="header-icon">📡</span>
+    <span class="header-title">Raider</span>
+    <span id="conn-dot" class="dot-live" title=""></span>
+    <span class="header-sub" id="host-display">—</span>
+    <span id="dev-chip" class="dev-chip" title="">DEV</span>
+  </div>
+
+  <div class="tabs">
+    <button class="tab active" data-tab="feed">Captures</button>
+    <button class="tab" data-tab="settings">Settings</button>
+  </div>
+
+  <!-- ── Feed panel ── -->
+  <div id="feed-panel">
+    <!-- Success flash (appears briefly when a capture completes) -->
+    <div id="success-flash"></div>
+
+    <div class="quick-wrap">
+      <!-- Capture warning: login-page block or low-signal warn -->
+      <div id="capture-warning">
+        <div id="warn-title"></div>
+        <div id="warn-body"></div>
+        <div class="warn-row">
+          <button id="btn-warn-confirm" class="btn-sm btn-retry">Capture anyway</button>
+          <button id="btn-warn-cancel"  class="btn-sm btn-dismiss">Cancel</button>
+        </div>
+      </div>
+
+      <button id="btn-pin-page" class="btn-pin-page">📡 Pin current page</button>
+
+      <div class="url-row">
+        <input id="quick-url" class="quick-input" type="url" placeholder="or paste any URL…" autocomplete="off" spellcheck="false" />
+        <button id="btn-capture" class="btn-capture" disabled>Pin</button>
+      </div>
+    </div>
+
+    <div id="feed"></div>
+  </div>
+
+  <!-- ── Settings panel ── -->
+  <div id="settings-panel">
+    <div class="field">
+      <label>API key</label>
+      <input id="cfg-apikey" type="password" placeholder="Paste your Amplify API key" spellcheck="false" autocomplete="off" />
+      <div class="hint">Sent as <code style="font-family:ui-monospace,monospace;background:var(--s2);padding:1px 4px;border-radius:3px;font-size:10px;">X-Api-Key</code> on every request.</div>
+    </div>
+    <div class="field">
+      <label>Radar host</label>
+      <input id="cfg-host" type="url" placeholder="https://admin.amplifyit.io" spellcheck="false" />
+      <div class="hint">Use <code style="font-family:ui-monospace,monospace;background:var(--s2);padding:1px 3px;border-radius:3px;font-size:10px;">http://localhost:3000</code> for local dev.</div>
+    </div>
+    <div class="toggle-row">
+      <div>
+        <div class="toggle-label">LinkedIn inline buttons</div>
+        <div class="toggle-hint">📡 next to each post. Off by default (LinkedIn ToS).</div>
+      </div>
+      <label class="toggle-switch">
+        <input id="cfg-li-inline" type="checkbox" />
+        <span class="track"></span>
+      </label>
+    </div>
+    <div class="btn-row">
+      <button id="btn-save-cfg"     class="btn btn-primary">Save</button>
+      <button id="btn-validate-cfg" class="btn btn-ghost">Validate</button>
+      <button id="btn-cancel-cfg"   class="btn btn-ghost">Cancel</button>
+    </div>
+    <div id="cfg-status" style="display:none;font-size:10px;margin-top:9px;font-weight:600;line-height:1.5;"></div>
+  </div>
+
+  <div class="footer">
+    <span class="footer-hint" id="shortcut-hint"></span>
+    <a id="open-radar" class="footer-link" href="#" target="_blank">Open Radar</a>
+    <button id="btn-clear-failed" class="footer-link danger" style="display:none;">Clear failed</button>
+  </div>
+
+  <script src="popup.js" type="module"></script>
+</body>
+</html>
