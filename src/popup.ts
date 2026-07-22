@@ -1,8 +1,8 @@
 /**
- * popup.ts — Raider popup v2
+ * popup.ts — Sonar popup v2
  *
  * Redesigned layout:
- *   ┌─ Header: RAIDER + connection dot + host + DEV chip if localhost ─┐
+ *   ┌─ Header: SONAR + connection dot + host + DEV chip if localhost ─┐
  *   │  [📡 Pin current page]                                           │
  *   │  [paste URL…  ][Pin]                                             │
  *   ├─ Section: Active ────────────────────────────────────────────────┤
@@ -26,8 +26,8 @@
 import type { StoredJob, LocalStatus } from './background';
 
 // ── Constants ─────────────────────────────────────────────────────────────────
-const STORAGE_JOBS_KEY = 'raider_jobs';
-const STORAGE_CFG_KEY  = 'raider_config';
+const STORAGE_JOBS_KEY = 'sonar_jobs';
+const STORAGE_CFG_KEY  = 'sonar_config';
 const DEFAULT_HOST     = 'https://admin.amplifyit.io';
 const MAX_FEED_SHOWN   = 20;
 const RECENT_FADE_MS   = 5 * 60 * 1000;   // completed jobs fade after 5 min
@@ -47,21 +47,21 @@ function section(job: StoredJob): 'active' | 'review' | 'failed' | 'recent' {
 
 // ── Storage ───────────────────────────────────────────────────────────────────
 async function loadJobs(): Promise<StoredJob[]> {
-  const r = await chrome.storage.local.get(STORAGE_JOBS_KEY) as { raider_jobs?: StoredJob[] };
-  return (r.raider_jobs ?? []).slice().sort((a, b) => b.created_at.localeCompare(a.created_at));
+  const r = await chrome.storage.local.get(STORAGE_JOBS_KEY) as { sonar_jobs?: StoredJob[] };
+  return (r.sonar_jobs ?? []).slice().sort((a, b) => b.created_at.localeCompare(a.created_at));
 }
 
 async function loadConfig(): Promise<Config> {
-  const r = await chrome.storage.local.get([STORAGE_CFG_KEY, 'raider_li_inline']) as {
-    raider_config?: Partial<Config> & { token?: string };
-    raider_li_inline?: boolean;
+  const r = await chrome.storage.local.get([STORAGE_CFG_KEY, 'sonar_li_inline']) as {
+    sonar_config?: Partial<Config> & { token?: string };
+    sonar_li_inline?: boolean;
   };
-  const cfg = r.raider_config ?? {};
-  return { host: cfg.host ?? DEFAULT_HOST, apiKey: cfg.apiKey ?? cfg.token ?? '', liInline: r.raider_li_inline === true };
+  const cfg = r.sonar_config ?? {};
+  return { host: cfg.host ?? DEFAULT_HOST, apiKey: cfg.apiKey ?? cfg.token ?? '', liInline: r.sonar_li_inline === true };
 }
 
 async function saveConfig(cfg: Config): Promise<void> {
-  await chrome.storage.local.set({ [STORAGE_CFG_KEY]: { host: cfg.host, apiKey: cfg.apiKey }, raider_li_inline: cfg.liInline });
+  await chrome.storage.local.set({ [STORAGE_CFG_KEY]: { host: cfg.host, apiKey: cfg.apiKey }, sonar_li_inline: cfg.liInline });
 }
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
@@ -450,9 +450,9 @@ function wireInteractions(feed: HTMLDivElement, cfg: Config): void {
       const card = btn.closest<HTMLDivElement>('.card');
       if (card) { card.style.opacity = '0'; card.style.transition = 'opacity 0.2s'; setTimeout(() => card.remove(), 200); }
       // Remove from storage
-      const r = await chrome.storage.local.get(STORAGE_JOBS_KEY) as { raider_jobs?: StoredJob[] };
-      const updated = (r.raider_jobs ?? []).filter(j => j.local_id !== id);
-      await chrome.storage.local.set({ raider_jobs: updated });
+      const r = await chrome.storage.local.get(STORAGE_JOBS_KEY) as { sonar_jobs?: StoredJob[] };
+      const updated = (r.sonar_jobs ?? []).filter(j => j.local_id !== id);
+      await chrome.storage.local.set({ sonar_jobs: updated });
     });
   });
 

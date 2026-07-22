@@ -1,4 +1,4 @@
-# Raider — Amplify GTM Chrome Extension
+# Sonar — Amplify GTM Chrome Extension
 
 > "Capture intelligence in the wild. Instantly."
 
@@ -103,7 +103,7 @@ The extension posts to `POST {host}/api/admin/gtm/radar/ingest`:
   "url":          "https://...",
   "purpose":      "manual_radar | trigger_tracking | operator_tracking | org_tracking",
   "priority":     "low | medium | high",
-  "requested_by": "raider"
+  "requested_by": "sonar"
 }
 ```
 
@@ -116,7 +116,7 @@ The Radar UI already handles job polling at `/api/admin/gtm/radar/jobs/{job_id}`
 ## Source
 
 ```
-raidar/
+sonar/
 ├── src/
 │   ├── background.ts   Service worker — API calls, queue, context menu, badge
 │   ├── content.ts      Injected into all pages — button, extraction, toast

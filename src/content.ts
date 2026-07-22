@@ -1,5 +1,5 @@
 /**
- * content.ts — Raider content script (platform router).
+ * content.ts — Sonar content script (platform router).
  *
  * Responsibilities:
  *   1. Boot: pick adapter, log diagnostics
@@ -11,8 +11,8 @@
  *
  * Diagnostics:
  *   Open DevTools console on the page and look for:
- *     [Raider] booted | platform=x | host=x.com
- *     [Raider] scan | posts_found=12 | injected=12 | already_done=0
+ *     [Sonar] booted | platform=x | host=x.com
+ *     [Sonar] scan | posts_found=12 | injected=12 | already_done=0
  *   If posts_found=0 on LinkedIn, the selectors need updating.
  */
 
@@ -36,11 +36,11 @@ const ADAPTERS: readonly PlatformAdapter[] = [
 const host   = location.hostname;
 const active = ADAPTERS.find(a => a.matches(host)) ?? webAdapter;
 
-console.info(`[Raider] booted | platform=${active.name} | host=${host}`);
+console.info(`[Sonar] booted | platform=${active.name} | host=${host}`);
 
 // ── Styles ────────────────────────────────────────────────────────────────────
 
-try { ensurePinStyles(); } catch (e) { console.warn('[Raider] ensurePinStyles failed', e); }
+try { ensurePinStyles(); } catch (e) { console.warn('[Sonar] ensurePinStyles failed', e); }
 
 // ── Scan ──────────────────────────────────────────────────────────────────────
 
@@ -66,7 +66,7 @@ function runScan(reason: string): void {
 
     if (posts.length > 0 || reason === 'boot') {
       console.debug(
-        `[Raider] scan(${reason}) | platform=${active.name}` +
+        `[Sonar] scan(${reason}) | platform=${active.name}` +
         ` | found=${posts.length} | new=${newPosts.length} | done=${donePosts}`,
       );
     }
@@ -75,11 +75,11 @@ function runScan(reason: string): void {
     const result = active.scan();
     if (result && typeof (result as Promise<void>).catch === 'function') {
       (result as Promise<void>).catch(e =>
-        console.warn('[Raider] scan async error', e),
+        console.warn('[Sonar] scan async error', e),
       );
     }
   } catch (e) {
-    console.warn(`[Raider] scan(${reason}) error on ${active.name}:`, e);
+    console.warn(`[Sonar] scan(${reason}) error on ${active.name}:`, e);
   }
 }
 
@@ -105,7 +105,7 @@ observer.observe(document.documentElement, { childList: true, subtree: true });
 
 if (active.name === 'linkedin') {
   setInlineToggleCallback(() => {
-    console.info('[Raider] LinkedIn inline toggle changed — rescanning');
+    console.info('[Sonar] LinkedIn inline toggle changed — rescanning');
     if (scanTimer) { clearTimeout(scanTimer); scanTimer = null; }
     runScan('inline_toggle');
   });
@@ -124,7 +124,7 @@ chrome.runtime.onMessage.addListener((msg: unknown, _sender, sendResponse) => {
 
   if (m.type === 'SHOW_TOAST') {
     try { toast(m.text ?? 'Pinned to Radar', m.ok !== false); }
-    catch (e) { console.warn('[Raider] toast failed', e); }
+    catch (e) { console.warn('[Sonar] toast failed', e); }
     return;
   }
 
@@ -141,7 +141,7 @@ chrome.runtime.onMessage.addListener((msg: unknown, _sender, sendResponse) => {
         kind:            capture.kind,
       });
     } catch (e) {
-      console.warn('[Raider] GET_CAPTURE_CONTEXT error', e);
+      console.warn('[Sonar] GET_CAPTURE_CONTEXT error', e);
       sendResponse({});
     }
     return true; // keep channel open for async sendResponse

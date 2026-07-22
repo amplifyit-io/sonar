@@ -1,4 +1,4 @@
-// build.mjs — esbuild bundler + icon generator for Raider extension
+// build.mjs — esbuild bundler + icon generator for Sonar extension
 import * as esbuild from 'esbuild';
 import fs from 'fs';
 import path from 'path';
@@ -31,7 +31,7 @@ const entryPoints = [
 if (watching) {
   const ctx = await esbuild.context({ ...base, entryPoints: entryPoints.map(e => e.in), outdir: DIST });
   await ctx.watch();
-  console.log('[raider] Watching for changes…');
+  console.log('[sonar] Watching for changes…');
 } else {
   await Promise.all(
     entryPoints.map(({ in: entry, out }) =>
@@ -54,7 +54,7 @@ copy('popup.html',    'popup.html');
 //   npx sharp-cli -i icons/icon.svg -o dist/icons/icon{size}.png --resize {size}
 // or use any SVG→PNG converter on icons/icon.svg.
 {
-  console.log('[raider] Generating PNG icons via pure-Node writer…');
+  console.log('[sonar] Generating PNG icons via pure-Node writer…');
   const zlib = await import('zlib');
   const { promisify } = await import('util');
   const deflate = promisify(zlib.deflate);
@@ -150,7 +150,7 @@ copy('popup.html',    'popup.html');
       fs.writeFileSync(path.join(DIST, 'icons', `icon${size}.png`), png);
     }),
   );
-  console.log('[raider] Fallback icons generated ✓');
+  console.log('[sonar] Fallback icons generated ✓');
 }
 
-if (!watching) console.log('[raider] Build complete → dist/');
+if (!watching) console.log('[sonar] Build complete → dist/');

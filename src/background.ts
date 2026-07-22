@@ -1,5 +1,5 @@
 /**
- * background.ts — Raider service worker
+ * background.ts — Sonar service worker
  *
  * Architecture: three stages per capture.
  *
@@ -107,17 +107,17 @@ const JOB_PATH         = (id: string) => `/api/admin/gtm/radar/jobs/${id}`;
 const MAX_INGEST_RETRIES = 3;
 const POLL_INTERVAL_MIN  = 0.04;    // ~2.4s (chrome.alarms minimum is 0.5 in prod, 0.01 when unpacked — we keep it explicit)
 const MAX_POLL_ATTEMPTS  = 60;      // ≈ 2 min total
-const STORAGE_JOBS_KEY   = 'raider_jobs';
-const STORAGE_CFG_KEY    = 'raider_config';
-const STORAGE_POLL_KEY   = 'raider_poll_state';  // { [local_id]: { attempts } }
+const STORAGE_JOBS_KEY   = 'sonar_jobs';
+const STORAGE_CFG_KEY    = 'sonar_config';
+const STORAGE_POLL_KEY   = 'sonar_poll_state';  // { [local_id]: { attempts } }
 
 // ── Config ────────────────────────────────────────────────────────────────────
 
 async function getConfig(): Promise<BackgroundConfig> {
   const r = await chrome.storage.local.get(STORAGE_CFG_KEY) as {
-    raider_config?: Partial<BackgroundConfig> & { token?: string };
+    sonar_config?: Partial<BackgroundConfig> & { token?: string };
   };
-  const cfg = r.raider_config ?? {};
+  const cfg = r.sonar_config ?? {};
   return {
     host:   cfg.host   ?? DEFAULT_HOST,
     // Migrate legacy `token` field → apiKey (one-time, transparent)
@@ -128,8 +128,8 @@ async function getConfig(): Promise<BackgroundConfig> {
 // ── Jobs persistence ──────────────────────────────────────────────────────────
 
 async function loadJobs(): Promise<StoredJob[]> {
-  const r = await chrome.storage.local.get(STORAGE_JOBS_KEY) as { raider_jobs?: StoredJob[] };
-  return r.raider_jobs ?? [];
+  const r = await chrome.storage.local.get(STORAGE_JOBS_KEY) as { sonar_jobs?: StoredJob[] };
+  return r.sonar_jobs ?? [];
 }
 
 async function saveJobs(jobs: StoredJob[]): Promise<void> {
@@ -154,8 +154,8 @@ async function updateJob(local_id: string, patch: Partial<StoredJob>): Promise<S
 // ── Poll state ────────────────────────────────────────────────────────────────
 
 async function getPollState(): Promise<Record<string, { attempts: number }>> {
-  const r = await chrome.storage.local.get(STORAGE_POLL_KEY) as { raider_poll_state?: Record<string, { attempts: number }> };
-  return r.raider_poll_state ?? {};
+  const r = await chrome.storage.local.get(STORAGE_POLL_KEY) as { sonar_poll_state?: Record<string, { attempts: number }> };
+  return r.sonar_poll_state ?? {};
 }
 
 async function setPollState(state: Record<string, { attempts: number }>): Promise<void> {
@@ -199,7 +199,7 @@ async function apiFetch(pathOrUrl: string, init: RequestInit = {}): Promise<Resp
   try {
     res = await fetch(url, { ...init, headers, signal: AbortSignal.timeout(15_000) });
   } catch (err) {
-    console.error('[Raider API] request failed', { method, url, error: String(err) });
+    console.error('[Sonar API] request failed', { method, url, error: String(err) });
     throw err;
   }
 
@@ -207,14 +207,14 @@ async function apiFetch(pathOrUrl: string, init: RequestInit = {}): Promise<Resp
   // route is 500ing and what the response body contains.
   if (!res.ok) {
     const body = await res.clone().text().catch(() => '(unreadable)');
-    console.error('[Raider API] non-2xx response', {
+    console.error('[Sonar API] non-2xx response', {
       method,
       url,
       status: res.status,
       body:   body.slice(0, 300),
     });
   } else {
-    console.info('[Raider API] ok', { method, url, status: res.status });
+    console.info('[Sonar API] ok', { method, url, status: res.status });
   }
 
   return res;
@@ -247,7 +247,7 @@ async function ingest(payload: IngestPayload): Promise<void> {
   });
 
   if (existing) {
-    console.info('[Raider] dedup: refreshing existing capture for', normalizedUrl.slice(0, 80));
+    console.info('[Sonar] dedup: refreshing existing capture for', normalizedUrl.slice(0, 80));
     existing.updated_at    = new Date().toISOString();
     existing.capture_count = (existing.capture_count ?? 1) + 1;
     existing.retries       = 0;
@@ -291,7 +291,7 @@ async function sendIngest(job: StoredJob): Promise<void> {
         url:           job.url,
         purpose:       job.purpose,
         priority:      job.priority,
-        requested_by:  'raider',
+        requested_by:  'sonar',
         platform:      job.platform,
         kind:          job.kind,
         page_title:    job.page_title,
@@ -449,7 +449,7 @@ function notifyFailure(url: string, reason: string): void {
   chrome.notifications.create({
     type:    'basic',
     iconUrl: 'icons/icon48.png',
-    title:   'Raider — Capture failed',
+    title:   'Sonar — Capture failed',
     message: `${url.slice(0, 60)}\n${reason.slice(0, 80)}`,
   });
 }
@@ -492,13 +492,13 @@ chrome.commands.onCommand.addListener(async (command) => {
 
 chrome.runtime.onInstalled.addListener(() => {
   chrome.contextMenus.create({
-    id:       'raider_ingest',
+    id:       'sonar_ingest',
     title:    '📡 Send to Radar',
     contexts: ['page', 'link', 'selection'],
   });
   chrome.action.setBadgeText({ text: '' });
 
-  // Use Side Panel as the primary Raider surface.
+  // Use Side Panel as the primary Sonar surface.
   // Clicking the toolbar icon opens the panel so it stays visible while browsing.
   if (chrome.sidePanel?.setPanelBehavior) {
     chrome.sidePanel.setPanelBehavior({ openPanelOnActionClick: true })
@@ -523,7 +523,7 @@ chrome.webNavigation.onHistoryStateUpdated.addListener((details) => {
 });
 
 chrome.contextMenus.onClicked.addListener(async (info, tab) => {
-  if (info.menuItemId !== 'raider_ingest') return;
+  if (info.menuItemId !== 'sonar_ingest') return;
   const url = (info.linkUrl ?? info.pageUrl ?? tab?.url ?? '').trim();
   if (!url) return;
 

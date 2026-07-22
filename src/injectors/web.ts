@@ -11,10 +11,10 @@
  * The backend pipeline handles parsing and entity resolution.
  */
 
-import type { PlatformAdapter, PostTarget, RaiderCapture } from './types';
+import type { PlatformAdapter, PostTarget, SonarCapture } from './types';
 import { cleanUrl } from '../pin';
 
-function guessKind(): RaiderCapture['kind'] {
+function guessKind(): SonarCapture['kind'] {
   // Article detection: look for <article> with substantial text, or article schema
   const article = document.querySelector('article');
   if (article && (article.innerText?.length ?? 0) > 200) return 'article';
@@ -50,7 +50,7 @@ export const webAdapter: PlatformAdapter = {
     return [];
   },
 
-  extractPost(): RaiderCapture {
+  extractPost(): SonarCapture {
     // Unused — findPosts always returns []
     return this.extractPage();
   },
@@ -59,7 +59,7 @@ export const webAdapter: PlatformAdapter = {
     // No per-post buttons on generic pages
   },
 
-  extractPage(): RaiderCapture {
+  extractPage(): SonarCapture {
     return {
       url:          cleanUrl(location.href),
       platform:     'web',

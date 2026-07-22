@@ -18,7 +18,7 @@
  *   - Quoted tweets nest article elements — skip inner ones
  */
 
-import type { PlatformAdapter, PostTarget, RaiderCapture } from './types';
+import type { PlatformAdapter, PostTarget, SonarCapture } from './types';
 import { alreadyInjected, markInjected } from './types';
 import { makePin, cleanUrl, ensurePinStyles } from '../pin';
 
@@ -63,7 +63,7 @@ function injectProfilePin(): void {
   const actions = document.querySelector(USER_ACT);
   if (!actions || alreadyInjected(actions)) return;
 
-  const capture: RaiderCapture = {
+  const capture: SonarCapture = {
     url:             cleanUrl(location.href),
     platform:        'x',
     kind:            'profile',
@@ -91,7 +91,7 @@ export const xAdapter: PlatformAdapter = {
     }).map(element => ({ element }));
   },
 
-  extractPost(element: HTMLElement): RaiderCapture {
+  extractPost(element: HTMLElement): SonarCapture {
     const url = extractTweetUrl(element) ?? cleanUrl(location.href);
     return {
       url,
@@ -110,7 +110,7 @@ export const xAdapter: PlatformAdapter = {
     if (!caret) return; // defer — caret renders after tweet body sometimes
 
     // Don't double-inject
-    if (caret.parentElement?.querySelector(':scope > .raider-pin')) {
+    if (caret.parentElement?.querySelector(':scope > .sonar-pin')) {
       markInjected(element);
       return;
     }
@@ -119,7 +119,7 @@ export const xAdapter: PlatformAdapter = {
     markInjected(element);
   },
 
-  extractPage(): RaiderCapture {
+  extractPage(): SonarCapture {
     const isStatus = /\/status\/\d+/.test(location.pathname);
 
     // On single-tweet pages, pull the primary article's text

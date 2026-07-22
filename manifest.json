@@ -1,7 +1,7 @@
 {
   "manifest_version": 3,
-  "name": "Raider — Amplify GTM",
-  "short_name": "Raider",
+  "name": "Sonar — Amplify GTM",
+  "short_name": "Sonar",
   "description": "Capture intelligence in the wild. One click → Amplify Radar.",
   "version": "0.2.0",
 
@@ -17,7 +17,7 @@
       "48":  "icons/icon48.png",
       "128": "icons/icon128.png"
     },
-    "default_title": "Raider"
+    "default_title": "Sonar"
   },
 
   "side_panel": {

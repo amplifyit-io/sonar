@@ -17,7 +17,7 @@
 export type Platform = 'x' | 'linkedin' | 'reddit' | 'web';
 export type CaptureKind = 'post' | 'profile' | 'article' | 'page';
 
-export interface RaiderCapture {
+export interface SonarCapture {
   url:              string;
   platform:         Platform;
   kind:             CaptureKind;
@@ -54,7 +54,7 @@ export interface PlatformAdapter {
    * MUST NOT perform network requests.
    * MUST NOT throw — failures are caught by the router.
    */
-  extractPost(element: HTMLElement): RaiderCapture;
+  extractPost(element: HTMLElement): SonarCapture;
   /**
    * Append/insert the pin button into the post's action row.
    * MUST be idempotent — guard with INJECTED_ATTR.
@@ -65,13 +65,13 @@ export interface PlatformAdapter {
    * Extract a capture for the current full page (toolbar/keyboard capture).
    * Used when no per-post context is needed.
    */
-  extractPage(): RaiderCapture;
+  extractPage(): SonarCapture;
 }
 
 // ── Idempotency helpers ───────────────────────────────────────────────────────
 
 /** Attribute stamped on each container we have already injected into */
-export const INJECTED_ATTR = 'data-raider-injected';
+export const INJECTED_ATTR = 'data-sonar-injected';
 
 export function alreadyInjected(el: Element): boolean {
   return el.hasAttribute(INJECTED_ATTR);

@@ -9,7 +9,7 @@
  * hunting required. Selectors used here are attribute-based, not class-based.
  */
 
-import type { PlatformAdapter, PostTarget, RaiderCapture } from './types';
+import type { PlatformAdapter, PostTarget, SonarCapture } from './types';
 import { alreadyInjected, markInjected } from './types';
 import { makePin, cleanUrl } from '../pin';
 
@@ -32,7 +32,7 @@ export const redditAdapter: PlatformAdapter = {
     return [...shreddit, ...oldPosts].map(element => ({ element }));
   },
 
-  extractPost(element: HTMLElement): RaiderCapture {
+  extractPost(element: HTMLElement): SonarCapture {
     let url: string;
 
     if (element.tagName.toLowerCase() === 'shreddit-post') {
@@ -70,7 +70,7 @@ export const redditAdapter: PlatformAdapter = {
         element.querySelector('[bundlename="post_credit_bar"]');
 
       if (!actionRow) return;
-      if (actionRow.querySelector(':scope > .raider-pin')) { markInjected(element); return; }
+      if (actionRow.querySelector(':scope > .sonar-pin')) { markInjected(element); return; }
 
       button.style.marginLeft = '4px';
       actionRow.appendChild(button);
@@ -78,7 +78,7 @@ export const redditAdapter: PlatformAdapter = {
       // Old Reddit: inject as <li> into the .flat-list.buttons action row
       const actionRow = element.querySelector('ul.flat-list.buttons');
       if (!actionRow) return;
-      if (actionRow.querySelector(':scope > .raider-pin, .raider-pin')) { markInjected(element); return; }
+      if (actionRow.querySelector(':scope > .sonar-pin, .sonar-pin')) { markInjected(element); return; }
 
       const li = document.createElement('li');
       li.appendChild(button);
@@ -87,7 +87,7 @@ export const redditAdapter: PlatformAdapter = {
     markInjected(element);
   },
 
-  extractPage(): RaiderCapture {
+  extractPage(): SonarCapture {
     return {
       url:         cleanUrl(location.href),
       platform:    'web',

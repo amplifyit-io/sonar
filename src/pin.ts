@@ -1,14 +1,14 @@
 /**
- * pin.ts — Raider pin button + Shadow DOM overlay layer.
+ * pin.ts — Sonar pin button + Shadow DOM overlay layer.
  *
  * Two isolation layers:
  *
  *   1. Pin buttons are inline DOM elements injected into the host page.
- *      They use a highly-specific `.raider-pin` class prefix and minimal CSS
+ *      They use a highly-specific `.sonar-pin` class prefix and minimal CSS
  *      so they participate correctly in the host page's flex/layout.
  *
  *   2. Toast notifications and any modal overlay render inside a Shadow DOM
- *      root (`#raider-overlay-host`) appended to <html>. This ensures:
+ *      root (`#sonar-overlay-host`) appended to <html>. This ensures:
  *        - our CSS cannot bleed into LinkedIn/X/Reddit
  *        - their CSS cannot break our overlay
  *        - z-index is isolated in the shadow stacking context
@@ -18,18 +18,18 @@
  */
 
 import type { Purpose, Priority } from './background';
-import type { RaiderCapture } from './injectors/types';
+import type { SonarCapture } from './injectors/types';
 
 export interface PinOptions {
   /** Pre-computed capture. Called at inject time, not at click time. */
-  capture:  RaiderCapture;
+  capture:  SonarCapture;
   /** Platform-specific style variant */
   variant?: 'default' | 'x' | 'reddit' | 'reddit-old';
 }
 
 // ── Shadow DOM overlay root ───────────────────────────────────────────────────
 
-const OVERLAY_HOST_ID = 'raider-overlay-host';
+const OVERLAY_HOST_ID = 'sonar-overlay-host';
 
 let _shadow: ShadowRoot | null = null;
 
@@ -62,7 +62,7 @@ const OVERLAY_CSS = `
     z-index: 2147483647;
   }
 
-  #raider-toast {
+  #sonar-toast {
     position: fixed;
     bottom: 22px;
     right: 18px;
@@ -83,7 +83,7 @@ const OVERLAY_CSS = `
                toast-out 0.25s 2.4s ease forwards;
   }
 
-  #raider-toast .r-dot {
+  #sonar-toast .r-dot {
     width: 6px;
     height: 6px;
     border-radius: 50%;
@@ -102,11 +102,11 @@ const OVERLAY_CSS = `
 // ── Per-post pin button CSS (injected once into document.head) ────────────────
 
 export function ensurePinStyles(): void {
-  if (document.getElementById('raider-pin-css')) return;
+  if (document.getElementById('sonar-pin-css')) return;
   const s = document.createElement('style');
-  s.id = 'raider-pin-css';
+  s.id = 'sonar-pin-css';
   s.textContent = `
-    button.raider-pin {
+    button.sonar-pin {
       display: inline-flex !important;
       align-items: center;
       justify-content: center;
@@ -126,26 +126,26 @@ export function ensurePinStyles(): void {
       outline: none;
       box-shadow: none;
     }
-    button.raider-pin:hover { opacity: 1; background: rgba(0,0,0,0.06); }
-    button.raider-pin:focus-visible { outline: 2px solid #111; outline-offset: 1px; }
-    button.raider-pin.raider-busy    { opacity: 0.5; pointer-events: none; cursor: default; }
-    button.raider-pin.raider-queued  { opacity: 1; color: #2563eb; animation: _raider-blink 1.1s ease-in-out infinite; }
-    button.raider-pin.raider-done    { opacity: 1; color: #15803d; }
-    button.raider-pin.raider-review  { opacity: 1; color: #d97706; }
-    button.raider-pin.raider-auth    { opacity: 1; color: #dc2626; }
+    button.sonar-pin:hover { opacity: 1; background: rgba(0,0,0,0.06); }
+    button.sonar-pin:focus-visible { outline: 2px solid #111; outline-offset: 1px; }
+    button.sonar-pin.sonar-busy    { opacity: 0.5; pointer-events: none; cursor: default; }
+    button.sonar-pin.sonar-queued  { opacity: 1; color: #2563eb; animation: _sonar-blink 1.1s ease-in-out infinite; }
+    button.sonar-pin.sonar-done    { opacity: 1; color: #15803d; }
+    button.sonar-pin.sonar-review  { opacity: 1; color: #d97706; }
+    button.sonar-pin.sonar-auth    { opacity: 1; color: #dc2626; }
 
-    button.raider-pin.v-x       { width: 34px; height: 34px; font-size: 15px; border-radius: 50%; }
-    button.raider-pin.v-x:hover { background: rgba(29,155,240,0.10); color: #1d9bf0; }
+    button.sonar-pin.v-x       { width: 34px; height: 34px; font-size: 15px; border-radius: 50%; }
+    button.sonar-pin.v-x:hover { background: rgba(29,155,240,0.10); color: #1d9bf0; }
 
-    button.raider-pin.v-reddit     { color: #7c7c83; }
-    button.raider-pin.v-reddit-old {
+    button.sonar-pin.v-reddit     { color: #7c7c83; }
+    button.sonar-pin.v-reddit-old {
       width: auto; height: auto;
       padding: 2px 6px; border-radius: 3px;
       font-size: 10px; font-weight: 700;
       color: #878a8c; opacity: 0.7;
     }
 
-    @keyframes _raider-blink {
+    @keyframes _sonar-blink {
       0%, 100% { opacity: 1; }
       50%      { opacity: 0.4; }
     }
@@ -163,7 +163,7 @@ export function toast(text: string, ok = true): void {
   if (_toastEl) { _toastEl.remove(); _toastEl = null; }
 
   const el   = document.createElement('div');
-  el.id      = 'raider-toast';
+  el.id      = 'sonar-toast';
   const dot  = document.createElement('span');
   dot.className = 'r-dot';
   dot.style.background = ok ? '#4ade80' : '#f87171';
@@ -193,8 +193,8 @@ export function cleanUrl(raw: string): string {
 
 export interface ExtIngestPayload {
   url:              string;
-  platform:         RaiderCapture['platform'];
-  kind:             RaiderCapture['kind'];
+  platform:         SonarCapture['platform'];
+  kind:             SonarCapture['kind'];
   page_title:       string;
   visible_text?:    string;
   author_hint?:     string;
@@ -207,7 +207,7 @@ export interface ExtIngestPayload {
   priority:         Priority;
 }
 
-function buildPayload(cap: RaiderCapture): ExtIngestPayload {
+function buildPayload(cap: SonarCapture): ExtIngestPayload {
   return {
     ...cap,
     purpose:  guessPurpose(cap),
@@ -215,7 +215,7 @@ function buildPayload(cap: RaiderCapture): ExtIngestPayload {
   };
 }
 
-function guessPurpose(cap: RaiderCapture): Purpose {
+function guessPurpose(cap: SonarCapture): Purpose {
   if (cap.platform === 'linkedin') {
     if (cap.kind === 'profile') return 'operator_tracking';
     if (cap.kind === 'page')    return 'org_tracking';
@@ -224,12 +224,12 @@ function guessPurpose(cap: RaiderCapture): Purpose {
   return 'manual_radar';
 }
 
-function guessPriority(cap: RaiderCapture): Priority {
+function guessPriority(cap: SonarCapture): Priority {
   if (cap.kind === 'profile' || cap.platform === 'x') return 'high';
   return 'medium';
 }
 
-function dispatchCapture(cap: RaiderCapture): Promise<boolean> {
+function dispatchCapture(cap: SonarCapture): Promise<boolean> {
   return new Promise(resolve => {
     chrome.runtime.sendMessage(
       { type: 'INGEST', payload: buildPayload(cap) },
@@ -274,8 +274,8 @@ function watchJob(
       changes: Record<string, chrome.storage.StorageChange>,
       area: string,
     ) => {
-      if (area !== 'local' || !changes.raider_jobs) return;
-      const jobs = (changes.raider_jobs.newValue ?? []) as Array<{
+      if (area !== 'local' || !changes.sonar_jobs) return;
+      const jobs = (changes.sonar_jobs.newValue ?? []) as Array<{
         url:              string;
         status:           string;
         canonical_org_id?: string;
@@ -331,23 +331,23 @@ const STAGE_LABEL: Record<string, string> = {
 export function makePin(opts: PinOptions): HTMLButtonElement {
   const btn = document.createElement('button');
   btn.type       = 'button';
-  btn.className  = `raider-pin v-${opts.variant ?? 'default'}`;
+  btn.className  = `sonar-pin v-${opts.variant ?? 'default'}`;
   btn.title      = 'Pin to Radar';
   btn.textContent = '📡';
-  btn.setAttribute('data-raider', '1');
-  btn.setAttribute('data-raider-url', opts.capture.url);
+  btn.setAttribute('data-sonar', '1');
+  btn.setAttribute('data-sonar-url', opts.capture.url);
 
   btn.addEventListener('click', async (e) => {
     e.preventDefault();
     e.stopPropagation();
-    if (btn.classList.contains('raider-busy')) return;
-    if (btn.classList.contains('raider-done')) return;
+    if (btn.classList.contains('sonar-busy')) return;
+    if (btn.classList.contains('sonar-done')) return;
 
-    btn.classList.add('raider-busy');
+    btn.classList.add('sonar-busy');
     btn.textContent = '⟳';
 
     // Refresh captured_at and selected_text at click time
-    const cap: RaiderCapture = {
+    const cap: SonarCapture = {
       ...opts.capture,
       captured_at:   new Date().toISOString(),
       selected_text: window.getSelection()?.toString().slice(0, 400) || undefined,
@@ -355,14 +355,14 @@ export function makePin(opts: PinOptions): HTMLButtonElement {
 
     const ok = await dispatchCapture(cap).catch(() => false);
 
-    btn.classList.remove('raider-busy');
+    btn.classList.remove('sonar-busy');
     if (!ok) {
       btn.textContent = '📡';
       toast('Failed to capture', false);
       return;
     }
 
-    btn.classList.add('raider-queued');
+    btn.classList.add('sonar-queued');
     btn.textContent = '•';
     btn.title       = 'Queued — processing in Radar…';
     toast('Captured · queuing…');
@@ -371,18 +371,18 @@ export function makePin(opts: PinOptions): HTMLButtonElement {
       opts.capture.url,
       (status) => {
         const label = STAGE_LABEL[status];
-        if (label && btn.classList.contains('raider-queued')) {
+        if (label && btn.classList.contains('sonar-queued')) {
           btn.textContent = label;
           btn.title       = `${status.charAt(0).toUpperCase() + status.slice(1)}…`;
         }
       },
     );
-    btn.classList.remove('raider-queued');
+    btn.classList.remove('sonar-queued');
 
     const { terminal, org, watchId, isRefresh } = completion;
 
     if (terminal === 'completed') {
-      btn.classList.add('raider-done');
+      btn.classList.add('sonar-done');
       btn.textContent = '✓';
       const orgSuffix = org ? ` · ${org}` : isRefresh ? ' · refreshed' : '';
       btn.title = watchId
@@ -392,19 +392,19 @@ export function makePin(opts: PinOptions): HTMLButtonElement {
       if (watchId) {
         btn.addEventListener('click', async (ev) => {
           ev.preventDefault(); ev.stopPropagation();
-          const cfg = await chrome.storage.local.get('raider_config') as { raider_config?: { host?: string } };
-          const host = cfg.raider_config?.host ?? 'https://admin.amplifyit.io';
+          const cfg = await chrome.storage.local.get('sonar_config') as { sonar_config?: { host?: string } };
+          const host = cfg.sonar_config?.host ?? 'https://admin.amplifyit.io';
           chrome.tabs.create({ url: `${host}/admin/gtm?tab=radar` });
         }, { once: true });
       }
       toast(`Saved to Radar${orgSuffix}`);
     } else if (terminal === 'needs_review') {
-      btn.classList.add('raider-review');
+      btn.classList.add('sonar-review');
       btn.textContent = '⚠';
       btn.title       = 'Saved — org not resolved, needs review';
       toast('Saved · needs review — check popup', true);
     } else if (terminal === 'auth_required') {
-      btn.classList.add('raider-auth');
+      btn.classList.add('sonar-auth');
       btn.textContent = '🔒';
       btn.title       = 'Sign in — open extension popup';
       toast('Sign in to admin first', false);

@@ -1,8 +1,8 @@
 {
-  "name": "raider-extension",
+  "name": "sonar-extension",
   "version": "0.1.0",
   "private": true,
-  "description": "Raider — Amplify GTM ambient intelligence capture",
+  "description": "Sonar — Amplify GTM ambient intelligence capture",
   "scripts": {
     "build": "node build.mjs",
     "watch": "node build.mjs --watch",
