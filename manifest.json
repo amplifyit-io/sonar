@@ -63,7 +63,13 @@
   },
 
   "host_permissions": [
+    "https://admin.amplifyit.io/*",
+    "http://localhost/*",
+    "http://127.0.0.1/*"
+  ],
+
+  "optional_host_permissions": [
     "https://*/*",
-    "http://localhost/*"
+    "http://*/*"
   ]
 }

@@ -187,9 +187,36 @@ async function refreshBadge(): Promise<void> {
 
 // ── Fetch helpers ─────────────────────────────────────────────────────────────
 
+/**
+ * Match pattern covering the configured Radar host. `host_permissions` in the
+ * manifest only covers the default host + localhost; any other host must be
+ * granted at runtime (the popup requests it on save via
+ * `optional_host_permissions`). Ports are dropped on purpose: a pattern without
+ * a port matches every port.
+ */
+function hostOriginPattern(host: string): string | null {
+  try {
+    const u = new URL(host);
+    if (u.protocol !== 'https:' && u.protocol !== 'http:') return null;
+    return `${u.protocol}//${u.hostname}/*`;
+  } catch {
+    return null;
+  }
+}
+
+async function assertHostPermission(host: string): Promise<void> {
+  const pattern = hostOriginPattern(host);
+  if (!pattern) throw new Error(`Invalid Radar host: ${host}`);
+  const granted = await chrome.permissions.contains({ origins: [pattern] });
+  if (!granted) {
+    throw new Error(`No permission to reach ${host} — open Settings and re-save the host to grant it`);
+  }
+}
+
 async function apiFetch(pathOrUrl: string, init: RequestInit = {}): Promise<Response> {
   const cfg  = await getConfig();
   const url  = pathOrUrl.startsWith('http') ? pathOrUrl : `${cfg.host}${pathOrUrl}`;
+  await assertHostPermission(url);
   const headers = new Headers(init.headers);
   headers.set('Content-Type', 'application/json');
   if (cfg.apiKey) headers.set('X-Api-Key', cfg.apiKey);
@@ -558,7 +585,34 @@ chrome.contextMenus.onClicked.addListener(async (info, tab) => {
 
 // ── Messages from content script / popup ─────────────────────────────────────
 
-chrome.runtime.onMessage.addListener((msg: unknown, _sender, sendResponse) => {
+/**
+ * Hosts a content script may message this worker from. Mirrors
+ * `content_scripts[].matches` in manifest.json (`https://*.linkedin.com/*` …) —
+ * keep the two in sync.
+ */
+const CONTENT_SCRIPT_HOSTS = ['linkedin.com', 'x.com', 'twitter.com', 'reddit.com'] as const;
+
+function isContentScriptOrigin(origin: string): boolean {
+  let u: URL;
+  try { u = new URL(origin); } catch { return false; }
+  if (u.protocol !== 'https:') return false;
+  return CONTENT_SCRIPT_HOSTS.some(h => u.hostname === h || u.hostname.endsWith(`.${h}`));
+}
+
+/**
+ * Only our own extension may talk to this worker. A sender with a `tab` is a
+ * content script and must come from a page we actually inject into; a sender
+ * without a tab is one of our own pages (side panel / popup).
+ */
+function isTrustedSender(sender: chrome.runtime.MessageSender): boolean {
+  if (sender.id !== chrome.runtime.id) return false;
+  if (!sender.tab) return true;
+  const url = sender.url ?? sender.origin;
+  return typeof url === 'string' && isContentScriptOrigin(url);
+}
+
+chrome.runtime.onMessage.addListener((msg: unknown, sender, sendResponse) => {
+  if (!isTrustedSender(sender)) return false;
   const m = msg as { type: string; payload?: IngestPayload };
 
   if (m.type === 'INGEST' && m.payload) {

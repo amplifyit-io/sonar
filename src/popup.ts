@@ -66,7 +66,41 @@ async function saveConfig(cfg: Config): Promise<void> {
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
 function qs<T extends HTMLElement>(sel: string): T { return document.querySelector<T>(sel) as T; }
-function esc(s: string): string { return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
+function esc(s: string): string {
+  return s
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#39;');
+}
+
+/**
+ * The manifest's static `host_permissions` only cover the default Radar host and
+ * localhost. Any other host the user types must be granted at runtime from
+ * `optional_host_permissions`. Must run inside the click handler (user gesture).
+ * Ports are dropped on purpose: a pattern without a port matches every port.
+ */
+function hostOriginPattern(host: string): string | null {
+  try {
+    const u = new URL(host);
+    if (u.protocol !== 'https:' && u.protocol !== 'http:') return null;
+    return `${u.protocol}//${u.hostname}/*`;
+  } catch {
+    return null;
+  }
+}
+
+async function ensureHostPermission(host: string): Promise<boolean> {
+  const pattern = hostOriginPattern(host);
+  if (!pattern) return false;
+  if (await chrome.permissions.contains({ origins: [pattern] })) return true;
+  try {
+    return await chrome.permissions.request({ origins: [pattern] });
+  } catch {
+    return false;
+  }
+}
 
 function ago(iso: string, captureCount?: number): string {
   const s = Math.round((Date.now() - new Date(iso).getTime()) / 1000);
@@ -673,6 +707,10 @@ async function init(): Promise<void> {
       apiKey:   qs<HTMLInputElement>('#cfg-apikey').value.trim(),
       liInline: li?.checked === true,
     };
+    if (!(await ensureHostPermission(newCfg.host))) {
+      showSt(`✗ Permission to reach ${shortHost(newCfg.host)} was not granted`, 'error');
+      return;
+    }
     await saveConfig(newCfg);
     currentCfg = newCfg;
     renderSettings(newCfg);
@@ -691,6 +729,10 @@ async function init(): Promise<void> {
       liInline: li?.checked === true,
     };
     if (!newCfg.apiKey) { showSt('Enter an API key first', 'error'); return; }
+    if (!(await ensureHostPermission(newCfg.host))) {
+      showSt(`✗ Permission to reach ${shortHost(newCfg.host)} was not granted`, 'error');
+      return;
+    }
     await saveConfig(newCfg);
     currentCfg = newCfg;
     renderSettings(newCfg);

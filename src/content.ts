@@ -113,7 +113,9 @@ if (active.name === 'linkedin') {
 
 // ── Messages from background ──────────────────────────────────────────────────
 
-chrome.runtime.onMessage.addListener((msg: unknown, _sender, sendResponse) => {
+chrome.runtime.onMessage.addListener((msg: unknown, sender, sendResponse) => {
+  // Only our own background worker / side panel may drive the content script.
+  if (sender.id !== chrome.runtime.id) return;
   const m = msg as { type: string; text?: string; ok?: boolean };
 
   if (m.type === 'NAVIGATE') {

@@ -66,7 +66,7 @@ Open the extension popup → **Config** tab:
 
 | Field | Default | Description |
 |-------|---------|-------------|
-| **Radar host** | `https://admin.amplifyit.io` | Base URL of your Amplify deployment |
+| **Radar host** | `https://admin.amplifyit.io` | Base URL of your Amplify deployment. The manifest only grants `admin.amplifyit.io` and `localhost`/`127.0.0.1` statically; saving any other host prompts for that origin at runtime (`optional_host_permissions`). |
 | **Auth token** | _(empty)_ | Optional Bearer token if your API requires auth |
 
 ---
